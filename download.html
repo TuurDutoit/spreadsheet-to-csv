@@ -19,16 +19,9 @@
         <label for="filename">Filename</label>
         <input type="text" id="filename" name="filename" value="export.zip" />
       </div>
-      <div class="block form-group">
-        <label for="download-method">Download method</label>
-        <select id="download-method" name="download-method">
-          <option value="download" selected>Download to your computer</option>
-          <option value="save">Save to Drive</option>
-        </select>
-      </div>
       <div class="block">
-        <button id="submit" class="action">Download</button>
-        <button id="cancel">Cancel</button>
+        <button id="download" class="action">Download</button>
+        <button id="save">Save to Drive</button>
       </div>
     </form>
     <p id="message"></p>
@@ -37,64 +30,60 @@
     var $separator = document.getElementById("separator");
     var $includeSepLine = document.getElementById("include-sep-line");
     var $filename = document.getElementById("filename");
-    var $downloadMethod = document.getElementById("download-method");
-    var $submit = document.getElementById("submit");
-    var $cancel = document.getElementById("cancel");
+    var $download = document.getElementById("download");
+    var $save = document.getElementById("save");
     var $sep = document.getElementById("sep");
     var $message = document.getElementById("message");
-    var buttonMap = {download: "Download", save: "Save"};
+    var buttons = {download: $download, save: $save};
     var busyMap = {download: "Downloading...", save: "Saving..."};
     
     $separator.addEventListener("input", function(e) {
       $sep.textContent = $separator.value;
     });
     
-    $downloadMethod.addEventListener("change", function(e) {
-      buttonNormal();
-    });
+    $download.addEventListener("click", onsubmit);
+    $save.addEventListener("click", onsubmit);
     
-    $cancel.addEventListener("click", close);
-    
-    $form.addEventListener("submit", function(e) {
+    function onsubmit(e) {
       e.preventDefault();
       
+      var $btn = e.target;
       var details = {
         separator: $separator.value,
         includeSepLine: $includeSepLine.checked,
         fileName: $filename.value,
-        downloadMethod: $downloadMethod.value
+        downloadMethod: $btn.id
       };
       
-      buttonBusy();
+      buttonBusy($btn);
       $message.textContent = "";
       
       google.script.run.withSuccessHandler(onExported).withFailureHandler(onError).saveAsCSV(details);
-    });
+    }
     
     function onExported(details) {
       if(details.downloadMethod === "save") {
         buttonNormal();
-        $message.textContent = "Saved";
         return;
       }
       
       var $anchor = document.createElement("a");
-      var autoDownload = false;//"download" in $anchor;
+      var autoDownload = "download" in $anchor;
       
       $anchor.href = details.downloadUrl;
       $anchor.download = details.fileName;
       
       if(autoDownload) {
-        buttonNormal();
         $anchor.click();
         setTimeout(afterDownload(details), 2000);
+        buttonNormal();
       }
       else {
-        buttonNormal();
         $message.textContent = "You can download the ZIP from ";
         $anchor.textContent = "here";
         $message.appendChild($anchor);
         document.body.appendChild($message);
+        buttonNormal();
       }
     }
     
@@ -109,11 +98,16 @@
     }
     
     function buttonNormal() {
-      $submit.textContent = buttonMap[ $downloadMethod.value ];
+      $download.textContent = "Download";
+      $download.disabled = false;
+      $save.textContent = "Save to Drive";
+      $save.disabled = false;
     }
     
-    function buttonBusy() {
-      $submit.textContent = busyMap[ $downloadMethod.value ];
+    function buttonBusy($btn) {
+      $btn.textContent = busyMap[$btn.id];
+      $download.disabled = true;
+      $save.disabled = true;
     }
     
     function onError() {
@@ -127,6 +121,3 @@
     </script>
   </body>
 </html>
-
-
-
