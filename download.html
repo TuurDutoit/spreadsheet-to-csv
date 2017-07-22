@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <title>Export as CSV</title>
+  </head>
+  <body class="sidebar">
+    <form id="form">
+      <div class="block form-group">
+        <label for="separator">Separator</label>
+        <input type="text" id="separator" name="separator" value="," />
+      </div>
+      <div class="block">
+        <input type="checkbox" id="include-sep-line" name="include-sep-line" />
+        <label for="include-sep-line">Include <strong>sep=<span id="sep">,</span></strong> line?</label>
+      </div>
+      <div class="block form-group">
+        <label for="filename">Filename</label>
+        <input type="text" id="filename" name="filename" value="export.zip" />
+      </div>
+      <div class="block form-group">
+        <label for="download-method">Download method</label>
+        <select id="download-method" name="download-method">
+          <option value="download" selected>Download to your computer</option>
+          <option value="save">Save to Drive</option>
+        </select>
+      </div>
+      <div class="block">
+        <button id="submit" class="action">Download</button>
+        <button id="cancel">Cancel</button>
+      </div>
+    </form>
+    <p id="message"></p>
+    <script type="text/javascript">
+    var $form = document.getElementById("form");
+    var $separator = document.getElementById("separator");
+    var $includeSepLine = document.getElementById("include-sep-line");
+    var $filename = document.getElementById("filename");
+    var $downloadMethod = document.getElementById("download-method");
+    var $submit = document.getElementById("submit");
+    var $cancel = document.getElementById("cancel");
+    var $sep = document.getElementById("sep");
+    var $message = document.getElementById("message");
+    var buttonMap = {download: "Download", save: "Save"};
+    var busyMap = {download: "Downloading...", save: "Saving..."};
+    
+    $separator.addEventListener("input", function(e) {
+      $sep.textContent = $separator.value;
+    });
+    
+    $downloadMethod.addEventListener("change", function(e) {
+      buttonNormal();
+    });
+    
+    $cancel.addEventListener("click", close);
+    
+    $form.addEventListener("submit", function(e) {
+      e.preventDefault();
+      
+      var details = {
+        separator: $separator.value,
+        includeSepLine: $includeSepLine.checked,
+        fileName: $filename.value,
+        downloadMethod: $downloadMethod.value
+      };
+      
+      buttonBusy();
+      $message.textContent = "";
+      
+      google.script.run.withSuccessHandler(onExported).withFailureHandler(onError).saveAsCSV(details);
+    });
+    
+    function onExported(details) {
+      if(details.downloadMethod === "save") {
+        buttonNormal();
+        $message.textContent = "Saved";
+        return;
+      }
+      
+      var $anchor = document.createElement("a");
+      var autoDownload = false;//"download" in $anchor;
+      
+      $anchor.href = details.downloadUrl;
+      $anchor.download = details.fileName;
+      
+      if(autoDownload) {
+        buttonNormal();
+        $anchor.click();
+        setTimeout(afterDownload(details), 2000);
+      }
+      else {
+        buttonNormal();
+        $message.textContent = "You can download the ZIP from ";
+        $anchor.textContent = "here";
+        $message.appendChild($anchor);
+        document.body.appendChild($message);
+      }
+    }
+    
+    function afterDownload(details) {
+      return function() {
+        removeZip(details.zipId);
+      }
+    }
+    
+    function removeZip(zipId) {
+      google.script.run.withSuccessHandler(buttonNormal).removeZip(zipId);
+    }
+    
+    function buttonNormal() {
+      $submit.textContent = buttonMap[ $downloadMethod.value ];
+    }
+    
+    function buttonBusy() {
+      $submit.textContent = busyMap[ $downloadMethod.value ];
+    }
+    
+    function onError() {
+      alert("An error occurred while generating the CSV files!");
+      close();
+    }
+    
+    function close() {
+      google.script.host.close();
+    }
+    </script>
+  </body>
+</html>
+
+
+
